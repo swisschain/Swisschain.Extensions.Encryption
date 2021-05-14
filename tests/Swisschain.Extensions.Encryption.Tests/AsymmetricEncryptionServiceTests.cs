@@ -1,17 +1,42 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Text;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Swisschain.Extensions.Encryption.Tests
 {
     public class AsymmetricEncryptionServiceTests
     {
+        private readonly ITestOutputHelper _testOutputHelper;
         private readonly AsymmetricEncryptionService _service;
         private const string Secret = "2Yjeh9Rs/cD9tZRifvC1wgcyfNFF4B8JFO2Ou4qjiFM=";
 
-        public AsymmetricEncryptionServiceTests()
+        public AsymmetricEncryptionServiceTests(ITestOutputHelper testOutputHelper)
         {
+            _testOutputHelper = testOutputHelper;
             _service = new AsymmetricEncryptionService();
+        }
+
+        [Fact]
+        public void GenerateNewPair()
+        {
+            var pair = _service.GenerateKeyPairPem();
+
+            var inlinePublicKey = pair.GetPublicKey().Replace("\r\n", @"\r\n");
+            var inlinePrivateKey = pair.GetPrivateKey().Replace("\r\n", @"\r\n");
+
+            _testOutputHelper.WriteLine("Inline public key:");
+            _testOutputHelper.WriteLine(inlinePublicKey);
+
+            _testOutputHelper.WriteLine("Inline private key:");
+            _testOutputHelper.WriteLine(inlinePrivateKey);
+
+            _testOutputHelper.WriteLine("Public key:");
+            _testOutputHelper.WriteLine(pair.GetPublicKey());
+
+            _testOutputHelper.WriteLine("Private key:");
+            _testOutputHelper.WriteLine(pair.GetPrivateKey());
         }
 
         [Fact]
@@ -23,6 +48,9 @@ namespace Swisschain.Extensions.Encryption.Tests
 
             var encryptedData = _service.Encrypt(secret, pair.GetPublicKey());
             var decryptedData = _service.Decrypt(encryptedData, pair.GetPrivateKey());
+
+            var publicKey = pair.GetPublicKey().Replace("\n", @"\r\n");
+            var privateKey = pair.GetPublicKey().Replace("\n", @"\r\n");
 
             // assert
             var decryptedDataBase64 = Encoding.UTF8.GetString(decryptedData);
@@ -72,15 +100,18 @@ namespace Swisschain.Extensions.Encryption.Tests
         public void Sign_And_Verify()
         {
             // arrange
-            var data = "Test string.";
+            var data = "{\"version\": \"1.0\",\"brokerAccountId\": 100000056,\"withdrawalReferenceId\": \"test-1\",\"assetId\": 300094812,\"amount\": 0.1,\"destinationDetails\": {\"address\": \"0x89182eC1093f34daf8318DaA77c515D59C3A07Ad\"}}";
 
+            var privateKey =
+                "-----BEGIN RSA PRIVATE KEY-----\r\nMIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKbQ+37V3PFbGAgx\r\nDBiGFu79CuE2EzC+InruufuoNHHGJf27QtesLBSeVkH3euADxqePCsR1N19/qtrK\r\nxMu90LNjm3DapLdVBWFLJXzyhNmAwNfK2BenAtxrZx7p6hehe0uiyLjynveBWmPj\r\nMtHgDwjqSRWH8AqdqxSc2pWc4EozAgEDAoGAG81/P85PfY8urAgsrsED0n+B0DOt\r\n3XUFvyfJqfFeEvZbqkngeUdcrhpjtak/JVX2cUKBy2jej+qcecx2IfT4HaB/M1PJ\r\ne716Y4m+JywuVQMp0B8qV1ppXu4NlBm4zFdRFjJrAAqEdVuADObrErSCNq1uFCI8\r\n9PltjAncnNLKG7MCQQDqkVHfb098qRzULR+p3AT4v6naKZw73ZEDG0YVcxPzPYtY\r\nRdA3n/5h3dGlah8bHYF5Zb0G1ZOlJLXYiFILHiE5AkEAtg7rBHyBZ33vPINyP5LW\r\ndQZNNbBvTK0R0/pgOiI5olc7HADoe+Q4+nxE1EZCieQ/YE7fs6y5H/UWiSaWoQWC\r\nywJBAJxg4T+filMbaI1zanE9WKXVG+bGaCfpC1dnhA5Mt/d+XOWD4CUVVEE+i8Oc\r\nFLy+VlDufgSOYm4YeTsFjAdpa3sCQHlfR1hTAO+pSihXoX+3OaNZiM51n4hzYTf8\r\nQCbBe8GPfL1V8FKYJfxS2I2ELFvtf5WJ6nfIe2qjZFtvDxYDrIcCQQDf2nG7TaZI\r\nsWU/ditJtRbBuIJS1aehskiI9swROXs8tBGH1AoZwn76rlRg3K/Et0afldtRtqaj\r\nFj/35qj/fNvQ\r\n-----END RSA PRIVATE KEY-----";
             // act
-            var keyPair = _service.GenerateKeyPairPem();
-            var signature = _service.GenerateSignature(Encoding.UTF8.GetBytes(data), keyPair.GetPrivateKey());
-            var isValid = _service.VerifySignature(Encoding.UTF8.GetBytes(data), signature, keyPair.GetPublicKey());
+            //var keyPair = _service.GenerateKeyPairPem();
+            var signature = _service.GenerateSignature(Encoding.UTF8.GetBytes(data), privateKey);
+            var signatureString = Convert.ToBase64String(signature);
+            //var isValid = _service.VerifySignature(Encoding.UTF8.GetBytes(data), signature, keyPair.GetPublicKey());
 
             // assert
-            Assert.True(isValid);
+            //Assert.True(isValid);
         }
 
         [Fact]
